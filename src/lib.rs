@@ -39,7 +39,7 @@ impl EventHandler for Bot {
         info!("{} is connected!", ready.user.name);
     }
 
-    async fn guild_create(&self, ctx: Context, guild: Guild, _is_new: bool) {
+    async fn guild_create(&self, ctx: Context, guild: Guild) {
         info!("The guild {} ({}) has added the bot", guild.name, guild.id);
         
         let set_command = guild.set_application_commands(ctx.http, |commands| { // Creating Commands
