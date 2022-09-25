@@ -1,3 +1,4 @@
+use ballot::VotingTypeEmoji;
 use log::{error, info};
 use serenity::async_trait;
 use serenity::model::channel::Message;
@@ -5,15 +6,40 @@ use serenity::model::gateway::Ready;
 use serenity::model::guild::Guild;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
+use serenity::model::prelude::ReactionType;
 use serenity::model::prelude::command::CommandType;
 use serenity::model::prelude::command::CommandOptionType;
+use serenity::model::prelude::interaction::modal::ModalSubmitInteraction;
 use serenity::prelude::*;
 
 use shuttle_service::error::CustomError;
 use shuttle_service::SecretStore;
 use sqlx::PgPool;
 
-struct Bot;
+mod ballot;
+mod dice;
+
+struct EmojiStore;
+
+impl EmojiStore {
+    pub(crate) fn get_emoji(&self, emoji: VotingTypeEmoji) -> ReactionType {
+        match emoji {
+            FPTP => ReactionType::from('✉'),
+            PREF => ReactionType::from('⚙'),
+            RANK => ReactionType::from('🥇'),
+            SCORE => ReactionType::from('🅱'),
+            _ => ReactionType::from('❓')
+        }
+    }
+
+    fn new() -> Self {
+        Self
+    }
+}
+
+struct Bot {
+    emojis: EmojiStore
+}
 
 #[async_trait]
 impl EventHandler for Bot {
@@ -31,7 +57,7 @@ impl EventHandler for Bot {
             Interaction::ApplicationCommand(cmd) => self.handle_command(ctx, cmd).await,
             Interaction::MessageComponent(_) => {},
             Interaction::Autocomplete(_) => {},
-            Interaction::ModalSubmit(_) => {},
+            Interaction::ModalSubmit(modal) => {},
         }
     }
 
@@ -145,40 +171,16 @@ impl Bot {
         }
     }
 
-    async fn ballot(&self, ctx: Context, cmd: ApplicationCommandInteraction) -> Result<(), serenity::Error> {
-        let number_of_options = cmd.data.options.get(0).unwrap().options.get(2).unwrap().value.as_ref().unwrap().as_u64().unwrap();
-
-        cmd.create_interaction_response(ctx.http, |response| {
-            response
-                .kind(serenity::model::prelude::interaction::InteractionResponseType::Modal)
-                .interaction_response_data(|data| {
-                    data
-                        .components(|mut components| {
-                            for i in 0..number_of_options {
-                                components = components
-                                    .create_action_row(|actions| {
-                                        actions.create_input_text(|text| {
-                                            text
-                                                .custom_id(format!("option_{}", i))
-                                                .label(format!("Option {}", i + 1))
-                                                .min_length(2)
-                                                .max_length(100)
-                                                .required(true)
-                                                .placeholder("Some Option")
-                                                .style(serenity::model::prelude::component::InputTextStyle::Short)
-                                        })
-                                    })
-                            }
-                            components
-                        })
-                        .custom_id("modal")
-                        .title(cmd.data.options.get(0).unwrap().options.get(0).unwrap().value.as_ref().unwrap().as_str().unwrap())
-                })
-        }).await
+    async fn handle_modal(&self, ctx: Context, modal: ModalSubmitInteraction) {
+        match modal.data.custom_id {
+            _ => {
+                
+            }
+        }
     }
 
-    async fn rollfate(&self, _ctx: Context, _cmd: ApplicationCommandInteraction) -> Result<(), serenity::Error> {
-        todo!()
+    fn new() -> Self {
+        Self {emojis: EmojiStore::new()}
     }
 }
 
@@ -194,7 +196,7 @@ async fn serenity(#[shared::Postgres] pool: PgPool) -> shuttle_service::ShuttleS
     let intents = GatewayIntents::GUILD_MESSAGES | GatewayIntents::GUILD_INTEGRATIONS | GatewayIntents::GUILD_MESSAGE_REACTIONS | GatewayIntents::GUILDS;
 
     let client = Client::builder(&token, intents)
-        .event_handler(Bot)
+        .event_handler(Bot::new())
         .await
         .expect("Err creating client");
 
