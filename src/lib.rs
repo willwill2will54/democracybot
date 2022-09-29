@@ -1,20 +1,32 @@
 use ballot::VotingTypeEmoji;
 use log::{error, info};
-use serenity::async_trait;
-use serenity::model::channel::Message;
-use serenity::model::gateway::Ready;
-use serenity::model::guild::Guild;
-use serenity::model::application::interaction::Interaction;
-use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::ReactionType;
-use serenity::model::prelude::command::CommandType;
-use serenity::model::prelude::command::CommandOptionType;
-use serenity::model::prelude::interaction::modal::ModalSubmitInteraction;
-use serenity::prelude::*;
+use serenity::{
+    async_trait,
+    model::{
+        channel::Message,
+        gateway::Ready,
+        guild::Guild,
+        application::interaction::{
+            Interaction,
+            application_command::ApplicationCommandInteraction
+        },
+        prelude::{
+            ReactionType,
+            interaction::modal::ModalSubmitInteraction,
+            command::{
+                CommandType,
+                CommandOptionType
+            }
+        }
+    },
+    prelude::*
+};
 
 use shuttle_service::error::CustomError;
 use shuttle_service::SecretStore;
 use sqlx::PgPool;
+
+use crate::dice::fate_number_to_rank;
 
 mod ballot;
 mod dice;
@@ -69,8 +81,8 @@ impl EventHandler for Bot {
         info!("The guild {} ({}) has added the bot", guild.name, guild.id);
         
         let set_command = guild.set_application_commands(ctx.http, |commands| { // Creating Commands
-            commands
-                .create_application_command(|command| { // Main Ballot Command
+            commands    
+            .create_application_command(|command| { // Main Ballot Command
                     command
                         .name("ballot")
                         .description("Create, manage, and edit ballots")
@@ -109,37 +121,33 @@ impl EventHandler for Bot {
                                 })
                         })
                 })
-                .create_application_command(|command| { // Fate Fudge command
+            .create_application_command(|command| { // Fate Fudge command
                     command
                         .name("rollfate")
                         .description("Roll fudge dice on a fate skill check")
                         .kind(CommandType::ChatInput)
-                        .create_option(|option| {
-                            option
+                        .create_option(|mut option| {
+                            option = option
                                 .name("base")
                                 .kind(CommandOptionType::Integer)
                                 .description("The fate skill level to offset")
-                                .add_int_choice("Terrible", -2)
-                                .add_int_choice("Poor", -1)
-                                .add_int_choice("Mediocre", -0)
-                                .add_int_choice("Average", 1)
-                                .add_int_choice("Fair", 2)
-                                .add_int_choice("Good", 3)
-                                .add_int_choice("Great", 4)
-                                .add_int_choice("Superb", 5)
-                                .add_int_choice("Fantastic", 6)
-                                .add_int_choice("Epic", 7)
-                                .add_int_choice("Legendary", 8)
                                 .min_int_value(-2)
-                                .max_int_value(8)
+                                .max_int_value(8);
+                            
+                            for i in -2 ..= 8 {
+                                option = option.add_int_choice(fate_number_to_rank(i as i64), i);
+                            }
+                                
+                            option
+                                
                         })
                         .create_option(|option| {
                             option
-                                .name("fudge")
+                                .name("dice")
                                 .description("The number of fudge dice to roll.")
                                 .kind(CommandOptionType::Integer)
                                 .min_int_value(0)
-                                .max_int_value(5)  
+                                .max_int_value(6)  
                         })
                 })
         }).await;

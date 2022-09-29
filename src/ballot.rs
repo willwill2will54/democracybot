@@ -1,4 +1,7 @@
-use serenity::{prelude::Context, model::prelude::interaction::application_command::ApplicationCommandInteraction};
+use serenity::{
+    prelude::Context,
+    model::prelude::interaction::application_command::ApplicationCommandInteraction
+};
 
 use crate::Bot;
 
@@ -7,6 +10,9 @@ pub(super) enum VotingTypeEmoji {
 }
 struct ballot;
 
+impl ballot {
+
+}
 
 impl Bot {
     pub(crate) async fn ballot(&self, ctx: Context, cmd: ApplicationCommandInteraction) -> Result<(), serenity::Error> {
@@ -33,45 +39,7 @@ impl Bot {
                                         })
                                     })
                             }
-                            components.create_action_row(|actions| {
-                                actions
-                                    .create_select_menu(|menu| {
-                                        menu
-                                            .custom_id("vote-type")
-                                            .placeholder("Select Vote Type")
-                                            .options(|options| {
-                                                options
-                                                    .create_option(|option| {
-                                                        option
-                                                            .label("First Past The Post")
-                                                            .value("fp")
-                                                            .description("It sucks but people know it.")
-                                                            .emoji(self.emojis.get_emoji(VotingTypeEmoji::FPTP))
-                                                    })
-                                                    .create_option(|option| {
-                                                        option
-                                                            .label("Preference Voting")
-                                                            .value("pf")
-                                                            .description("Which ones are ok by you? Simple Enough!")
-                                                            .emoji(self.emojis.get_emoji(VotingTypeEmoji::FPTP))
-                                                    })
-                                                    .create_option(|option| {
-                                                        option
-                                                            .label("Score Voting")
-                                                            .value("sr")
-                                                            .description("How MUCH do you want that, exactly?")
-                                                            .emoji(self.emojis.get_emoji(VotingTypeEmoji::FPTP))
-                                                    })
-                                                    .create_option(|option| {
-                                                        option
-                                                            .label("Ranked Choice Voting")
-                                                            .value("rc")
-                                                            .description("Rank them. Familiar to anyone who has read buzzfeed.")
-                                                            .emoji(self.emojis.get_emoji(VotingTypeEmoji::FPTP))
-                                                    })
-                                            })
-                                    })
-                            })
+                            components
                         })
                         .custom_id("modal")
                         .title(cmd.data.options.get(0).unwrap().options.get(0).unwrap().value.as_ref().unwrap().as_str().unwrap())
